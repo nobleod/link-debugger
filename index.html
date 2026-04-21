@@ -721,14 +721,25 @@ function score(data, url) {
   return { pct, issues, checks };
 }
 
+function proxyImg(src) {
+  if (!src) return null;
+  // Try direct first, fall back to allorigins image proxy
+  return src;
+}
+
+function imgTag(src, fallbackSrc) {
+  if (!src) return `<div class="no-img">🖼️ No og:image found</div>`;
+  const proxied = `https://images.weserv.nl/?url=${encodeURIComponent(src)}&w=1200&output=jpg`;
+  return `<img src="${proxied}" alt="preview"
+    onerror="if(this.dataset.tried){this.parentNode.innerHTML='<div class=no-img>⚠️ Image blocked by server</div>'}else{this.dataset.tried=1;this.src='${src.replace(/'/g,"\\'")}'}">`;
+}
+
 function renderPreview(platform, data, url) {
   const domain = getDomain(url);
   const title = data.title || '(No title found)';
   const desc = data.description || '';
   const image = data.image || null;
-  const imgHtml = image
-    ? `<img src="${image}" alt="preview" onerror="this.parentNode.innerHTML='<div class=no-img>⚠️ Image failed to load</div>'">`
-    : `<div class="no-img">🖼️ No og:image found</div>`;
+  const imgHtml = imgTag(image);
 
   if (platform === 'fb') return `
     <div class="fb-preview">
@@ -761,7 +772,7 @@ function renderPreview(platform, data, url) {
 
   if (platform === 'wa') return `
     <div class="wa-preview">
-      <div class="thumb">${image ? `<img src="${image}" alt="">` : '<div class="no-img">🖼️</div>'}</div>
+      <div class="thumb">${image ? imgTag(image) : '<div class="no-img">🖼️</div>'}</div>
       <div class="meta">
         <div class="domain">${domain}</div>
         <div class="title">${title}</div>
