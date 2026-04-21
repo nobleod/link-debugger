@@ -525,6 +525,12 @@
           <div style="font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;">LIVE SIMULATION</div>
         </div>
         <div class="card-body" id="previewBody"></div>
+        <div style="padding: 14px 20px; border-top: 1px solid var(--border); background: var(--surface2); display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <button class="copy-btn" id="copyUrlBtn" onclick="copyUrl()" style="padding: 8px 16px; font-size: 12px;">🔗 Copy URL</button>
+          <button class="copy-btn" id="copyShareBtn" onclick="copyShareSummary()" style="padding: 8px 16px; font-size: 12px;">📋 Copy Title + Description</button>
+          <button class="copy-btn" id="copyImageBtn" onclick="copyImageUrl()" style="padding: 8px 16px; font-size: 12px;">🖼️ Copy Image URL</button>
+          <span id="copyPreviewFeedback" style="font-family:'DM Mono',monospace; font-size:11px; color:var(--success); display:none;">✅ Copied!</span>
+        </div>
       </div>
     </div>
 
@@ -948,6 +954,43 @@ async function analyse() {
   }
 
   document.getElementById('analyseBtn').disabled = false;
+}
+
+function flashCopyFeedback() {
+  const fb = document.getElementById('copyPreviewFeedback');
+  fb.style.display = 'inline';
+  setTimeout(() => { fb.style.display = 'none'; }, 2000);
+}
+
+function copyUrl() {
+  if (!currentData) return;
+  navigator.clipboard.writeText(currentData.url);
+  const btn = document.getElementById('copyUrlBtn');
+  btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '🔗 Copy URL'; btn.classList.remove('copied'); }, 2000);
+  flashCopyFeedback();
+}
+
+function copyShareSummary() {
+  if (!currentData) return;
+  const m = currentData.meta;
+  const text = [m.title, m.description].filter(Boolean).join('\n\n');
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('copyShareBtn');
+  btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '📋 Copy Title + Description'; btn.classList.remove('copied'); }, 2000);
+  flashCopyFeedback();
+}
+
+function copyImageUrl() {
+  if (!currentData) return;
+  const img = currentData.meta.image;
+  if (!img) { alert('No og:image found on this page.'); return; }
+  navigator.clipboard.writeText(img);
+  const btn = document.getElementById('copyImageBtn');
+  btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '🖼️ Copy Image URL'; btn.classList.remove('copied'); }, 2000);
+  flashCopyFeedback();
 }
 
 function copyMeta() {
