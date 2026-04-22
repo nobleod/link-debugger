@@ -529,6 +529,8 @@
           <button class="copy-btn" id="copyUrlBtn" onclick="copyUrl()" style="padding: 8px 16px; font-size: 12px;">🔗 Copy URL</button>
           <button class="copy-btn" id="copyShareBtn" onclick="copyShareSummary()" style="padding: 8px 16px; font-size: 12px;">📋 Copy Title + Description</button>
           <button class="copy-btn" id="copyImageBtn" onclick="copyImageUrl()" style="padding: 8px 16px; font-size: 12px;">🖼️ Copy Image URL</button>
+          <button class="copy-btn" id="copyImgFileBtn" onclick="copyImageToClipboard()" style="padding: 8px 16px; font-size: 12px;">📸 Copy Thumbnail</button>
+          <button class="copy-btn" id="downloadImgBtn" onclick="downloadImage()" style="padding: 8px 16px; font-size: 12px;">⬇️ Download Thumbnail</button>
           <span id="copyPreviewFeedback" style="font-family:'DM Mono',monospace; font-size:11px; color:var(--success); display:none;">✅ Copied!</span>
         </div>
       </div>
@@ -960,6 +962,69 @@ function flashCopyFeedback() {
   const fb = document.getElementById('copyPreviewFeedback');
   fb.style.display = 'inline';
   setTimeout(() => { fb.style.display = 'none'; }, 2000);
+}
+
+async function getProxiedImageBlob() {
+  if (!currentData || !currentData.meta.image) throw new Error('No image found');
+  const proxied = `https://images.weserv.nl/?url=${encodeURIComponent(currentData.meta.image)}&output=jpg`;
+  const res = await fetch(proxied);
+  if (!res.ok) throw new Error('Could not fetch image');
+  return await res.blob();
+}
+
+async function copyImageToClipboard() {
+  const btn = document.getElementById('copyImgFileBtn');
+  btn.textContent = '⏳ Copying…';
+  try {
+    const blob = await getProxiedImageBlob();
+    // Convert to png for clipboard compatibility
+    const imgBitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = imgBitmap.width;
+    canvas.height = imgBitmap.height;
+    canvas.getContext('2d').drawImage(imgBitmap, 0, 0);
+    canvas.toBlob(async (pngBlob) => {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': pngBlob })
+        ]);
+        btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+        flashCopyFeedback();
+      } catch(e) {
+        btn.textContent = '❌ Browser blocked'; 
+        console.error(e);
+      }
+      setTimeout(() => { btn.textContent = '📸 Copy Thumbnail'; btn.classList.remove('copied'); }, 2500);
+    }, 'image/png');
+  } catch(e) {
+    btn.textContent = '❌ Failed';
+    setTimeout(() => { btn.textContent = '📸 Copy Thumbnail'; btn.classList.remove('copied'); }, 2500);
+    console.error(e);
+  }
+}
+
+async function downloadImage() {
+  const btn = document.getElementById('downloadImgBtn');
+  btn.textContent = '⏳ Downloading…';
+  try {
+    const blob = await getProxiedImageBlob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    // Use article slug as filename
+    const slug = (currentData.url || 'thumbnail').split('/').filter(Boolean).pop() || 'thumbnail';
+    a.href = url;
+    a.download = slug + '.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    btn.textContent = '✅ Downloaded!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '⬇️ Download Thumbnail'; btn.classList.remove('copied'); }, 2500);
+  } catch(e) {
+    btn.textContent = '❌ Failed';
+    setTimeout(() => { btn.textContent = '⬇️ Download Thumbnail'; btn.classList.remove('copied'); }, 2500);
+    console.error(e);
+  }
 }
 
 function copyUrl() {
